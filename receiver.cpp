@@ -51,14 +51,31 @@
 #include <QtWidgets>
 #include <QtNetwork>
 #include <QHeaderView>
+#include <QFile>
 
 #include "receiver.h"
 
 Receiver::Receiver(QWidget *parent)
     : QDialog(parent)
 {
+   initLogFile();
    initSocket();
    initUI();
+}
+
+Receiver::~Receiver()
+{
+    logFile->close();
+}
+
+void Receiver::initLogFile()
+{
+    logFile = new QFile("1.txt", this);
+    if (!logFile->open(QIODevice::ReadWrite | QIODevice::Text))
+    {
+        return;
+    }
+    out.setDevice(logFile);
 }
 
 void Receiver::initUI()
@@ -91,7 +108,7 @@ void Receiver::initUI()
     mainLayout->addWidget(stackedWidget);
     setLayout(mainLayout);
 
-     setWindowTitle(tr("Multicast Receiver"));
+    setWindowTitle(tr("Multicast Receiver"));
 }
 
 QWidget *Receiver::addHostServicePage()
@@ -174,6 +191,7 @@ void Receiver::initSocket()
 {
     addHostServiceSocket();
     addSlaveServiceSocket();
+    setNetworkInterface();
 }
 
 void Receiver::addHostServiceSocket()
@@ -181,14 +199,16 @@ void Receiver::addHostServiceSocket()
     groupAddress = QHostAddress("238.255.43.21");
 
     hostReceiverUdpSocket = new QUdpSocket(this);
-    hostReceiverUdpSocket->bind(QHostAddress::AnyIPv4, 45454, QUdpSocket::ShareAddress);
-    hostReceiverUdpSocket->joinMulticastGroup(groupAddress);
-    setNetworkInterface();
+    bool bBind = hostReceiverUdpSocket->bind(QHostAddress::AnyIPv4, 45454, QUdpSocket::ShareAddress);
+    bool bJoinMultiCast = hostReceiverUdpSocket->joinMulticastGroup(groupAddress);
 
    connect(hostReceiverUdpSocket, SIGNAL(readyRead()),
             this, SLOT(hostReceiveProcessPendingDatagrams()));
 
    hostSenderUdpSocket = new QUdpSocket(this);
+
+   out << "Host Receiver Bind " << (bBind ? "Success" : "Fail") << "\n";
+   out << "Host Receiver JoinMultiCast " << (bJoinMultiCast ? "Success" : "Fail") << "\n";
 }
 
 void Receiver::addSlaveServiceSocket()
@@ -197,11 +217,13 @@ void Receiver::addSlaveServiceSocket()
     connect(timer, SIGNAL(timeout()), this, SLOT(onTimeOut()));
 
     slaveReceiverUdpSocket = new QUdpSocket(this);
-    slaveReceiverUdpSocket->bind(QHostAddress::AnyIPv4, 50000, QUdpSocket::ShareAddress);
+    bool bBind = slaveReceiverUdpSocket->bind(QHostAddress::AnyIPv4, 50000, QUdpSocket::ShareAddress);
     connect(slaveReceiverUdpSocket, SIGNAL(readyRead()),
              this, SLOT(slaveReceiverProcessPendingDatagrams()));
 
     slaveSenderUdpSocket = new QUdpSocket(this);
+
+    out << "Slave Receiver Bind " << (bBind ? "Success" : "Fail") << "\n";
 }
 
 void Receiver::resetUI()
@@ -336,6 +358,7 @@ void Receiver::setNetworkInterface()
             if (ipAddressesList.at(i) == QHostAddress::LocalHost &&  ipAddressesList.at(i).toIPv4Address())
             {
                 hostReceiverUdpSocket->setMulticastInterface(netWorkInterface);
+                slaveReceiverUdpSocket->setMulticastInterface(netWorkInterface);
                 break;
             }
         }

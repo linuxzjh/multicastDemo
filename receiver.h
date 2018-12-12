@@ -62,6 +62,8 @@ class QLabel;
 class QComboBox;
 class QUdpSocket;
 class QTimer;
+class QFile;
+class QTextStream;
 QT_END_NAMESPACE
 
 typedef struct _senderInfo_stru
@@ -77,7 +79,7 @@ class Receiver : public QDialog
 
 public:
     Receiver(QWidget *parent = 0);
-
+    ~Receiver();
 private slots:
     //主设备
     void connectClicked();
@@ -92,6 +94,7 @@ private slots:
     //其他
     void onCurrentTypeChanged(int);
 private:
+    void initLogFile();
     void initUI();
     QWidget* addHostServicePage();
     QWidget* addSlaveServicePage();
@@ -134,6 +137,10 @@ private:
 
     QUdpSocket *slaveReceiverUdpSocket;
     QUdpSocket *slaveSenderUdpSocket;
+
+
+    QFile *logFile;
+    QTextStream out;
 };
 
 #endif
