@@ -61,7 +61,15 @@ class QPushButton;
 class QLabel;
 class QComboBox;
 class QUdpSocket;
+class QTimer;
 QT_END_NAMESPACE
+
+typedef struct _senderInfo_stru
+{
+    int type;
+    QString ip;
+    QString hostName;
+} senderInfo_stru;
 
 class Receiver : public QDialog
 {
@@ -71,21 +79,61 @@ public:
     Receiver(QWidget *parent = 0);
 
 private slots:
-    void processPendingDatagrams();
-    void okClicked();
+    //主设备
+    void connectClicked();
+    void hostReceiveProcessPendingDatagrams();
+
+    //从设备
+    void onStartBtnClicked();
+    void onQuitCliked();
+    void onTimeOut();
+    void slaveReceiverProcessPendingDatagrams();
+
+    //其他
+    void onCurrentTypeChanged(int);
 private:
     void initUI();
+    QWidget* addHostServicePage();
+    QWidget* addSlaveServicePage();
+
+    void initSocket();
+    void addHostServiceSocket();
+    void addSlaveServiceSocket();
+
+    void resetUI();
+
+    //主设备socket相关函数
     void setNetworkInterface();
     void parseData(const QByteArray& datagram);
+
+    //从设备socket相关函数
+    QString getIPAddress();
+    QString getHostName();
+    void    slaveServiceSendDatagram(const senderInfo_stru &info);
+
+    //主窗口
     QLabel *typeSelectLabel;
     QComboBox *typeSelectComboBox;
-    QTableWidget *tableWidget;
-    QPushButton *quitButton;
-    QPushButton *okButton;
     QStackedWidget *stackedWidget;
 
-    QUdpSocket *udpSocket;
+    //主设备页面
+    QTableWidget *tableWidget;
+    QPushButton *quitButton;
+    QPushButton *connectButton;
+
+    //从设备操作页面
+    QLabel *senderLabel;
+    QPushButton *startPushButton;
+    QPushButton *quitPushButton;
+    QTimer *timer;
+
     QHostAddress groupAddress;
+
+    QUdpSocket *hostReceiverUdpSocket;
+    QUdpSocket *hostSenderUdpSocket;
+
+    QUdpSocket *slaveReceiverUdpSocket;
+    QUdpSocket *slaveSenderUdpSocket;
 };
 
 #endif
